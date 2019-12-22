@@ -6,6 +6,7 @@ import websockets
 import json
 import string
 import re
+import os, getopt
 
 from functools import partial
 from contextlib import contextmanager
@@ -92,6 +93,7 @@ class RuleSystem(RequiredConfig):
         all_things = []
         for a_thing_meta in all_things_meta:
             a_thing = make_thing(self.config, a_thing_meta)
+            logging.debug('Making thing %s', as_python_identifier(a_thing.name))
             all_things.append(a_thing)
         return all_things
 
@@ -198,7 +200,7 @@ def make_thing(config, meta_definition):
             # meta_definition comes from the json representation of the thing
             self.meta_definition = meta_definiton_as_dot_dict
             self.id = self.meta_definition.href.split('/')[-1]
-            self.name = self.meta_definition.name
+            self.name = self.meta_definition.title
             self.participating_rules = []
             self.command_queue = asyncio.Queue()
 
@@ -359,7 +361,8 @@ def run_main(main_function, configuration_requirements=Namespace()):
     )
     required_config.update(logging_config)
     required_config.update(configuration_requirements)
-    config = configuration(required_config)
+    value_sources = ('./pywot.ini', os.environ, getopt)
+    config = configuration(required_config, values_source_list=value_sources)
 
     logging.basicConfig(
         level=config.logging_level,
