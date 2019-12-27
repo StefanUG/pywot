@@ -310,6 +310,23 @@ def make_thing(config, meta_definition):
                     message["data"][key] = thing_proxy[key]
                 asyncio.ensure_future(self.command_queue.put(message))
 
+        # Fetches the properties from the server, so they are not None initially
+        async def fetch_properties(self):
+            async with aiohttp.ClientSession() as session:
+                async with session.get(
+                    '{}/{}'.format(self.meta_definition.id, 'properties'),
+                    headers={
+                        'Accept': 'application/json',
+                        'Authorization': 'Bearer {}'.format(self.config.things_gateway_auth_key),
+                    }
+                ) as response:
+                    body = await response.text()
+                    thing_properties = json.loads(body)
+                    for a_property_name in thing_properties:
+                        a_value = thing_properties[a_property_name]
+                        setattr(self, '__{}'.format(as_python_identifier(a_property_name)), a_value)
+                        logging.debug('{} fetch_properties setting {} to {}', self.name, a_property_name, a_value)
+
 
     def get_property(hidden_instance_name, self):
         return getattr(self, hidden_instance_name)
