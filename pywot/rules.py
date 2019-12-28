@@ -325,7 +325,7 @@ def make_thing(config, meta_definition):
                     for a_property_name in thing_properties:
                         a_value = thing_properties[a_property_name]
                         setattr(self, '__{}'.format(as_python_identifier(a_property_name)), a_value)
-                        logging.debug('{} fetch_properties setting {} to {}', self.name, a_property_name, a_value)
+                        logging.debug('%s fetch_properties setting %s to %s', self.name, a_property_name, a_value)
 
 
     def get_property(hidden_instance_name, self):
