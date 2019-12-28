@@ -33,7 +33,7 @@ setup(
     ],
     keywords='web of things, internet of things',
 
-    packages=find_packages(exclude=['pywot']),
+    packages=find_packages(),
     install_requires=['configman', 'webthing>=0.6', 'astral', 'aiohttp', 'websockets'],
 
     project_urls={
