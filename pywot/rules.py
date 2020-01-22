@@ -3,6 +3,7 @@ import async_timeout
 import asyncio
 import logging
 import websockets
+import ssl
 import json
 import string
 import re
@@ -36,6 +37,11 @@ class RuleSystem(RequiredConfig):
         'seconds_for_timeout',
         doc='the number of seconds to allow for fetching data',
         default=10
+    )
+    required_config.add_option(
+        'verify_ssl',
+        doc='Whether to verify SSL certificates for HTTPS connections or not',
+        default=True
     )
     required_config.add_option(
         'http_things_gateway_host',
@@ -74,7 +80,7 @@ class RuleSystem(RequiredConfig):
             self.set_of_participating_things.add(a_thing)
 
     async def get_all_things(self):
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=self.config.verify_ssl)) as session:
             async with async_timeout.timeout(self.config.seconds_for_timeout):
                 async with session.get(
                     '{}/things'.format(self.config.http_things_gateway_host),
@@ -237,11 +243,16 @@ def make_thing(config, meta_definition):
         async def trigger_detection_loop(self):
             while True:
                 try:
+                    ssl_ctx = ssl.create_default_context()
+                    if not self.config.verify_ssl:
+                        ssl_ctx.check_hostname = False
+                        ssl_ctx.verify_mode = ssl.CERT_NONE
+                    
                     async with websockets.connect(
                         '{}?jwt={}'.format(
                             self.web_socket_link,
                             self.config.things_gateway_auth_key
-                        ),
+                        ), ssl=ssl_ctx
                     ) as websocket:
                         logging.debug('web socket established to %s', self.web_socket_link)
                         await asyncio.gather(
@@ -310,7 +321,7 @@ def make_thing(config, meta_definition):
 
         # Fetches the properties from the server, so they are not None initially
         async def fetch_properties(self):
-            async with aiohttp.ClientSession() as session:
+            async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=self.config.verify_ssl)) as session:
                 async with session.get(
                     '{}/{}'.format(self.meta_definition.id, 'properties'),
                     headers={
